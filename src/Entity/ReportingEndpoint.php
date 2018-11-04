@@ -27,6 +27,7 @@ use Drupal\Core\Config\Entity\ConfigEntityBase;
  *   links = {
  *     "edit-form" = "/admin/config/system/reporting/{reporting_endpoint}",
  *     "delete-form" = "/admin/config/system/reporting/{reporting_endpoint}/delete",
+ *     "collection" = "/admin/config/system/reporting",
  *   }
  * )
  */

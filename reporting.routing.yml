@@ -1,3 +1,15 @@
+entity.reporting_endpoint.log:
+  path: '/reporting/{reporting_endpoint}'
+  defaults:
+    _title: 'Log Report'
+    _controller: '\Drupal\reporting\Controller\ReportingEndpoint::log'
+  requirements:
+    _access: 'TRUE'
+  options:
+    no_cache: 'TRUE'
+    reporting_endpoint:
+      type: entity:reporting_endpoint
+
 entity.reporting_endpoint.collection:
   path: '/admin/config/system/reporting'
   defaults:
