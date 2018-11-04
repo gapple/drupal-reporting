@@ -1,0 +1,10 @@
+reporting.reporting_endpoint.*:
+  type: config_entity
+  label: 'Reporting Endpoint config'
+  mapping:
+    id:
+      type: string
+      label: 'ID'
+    label:
+      type: label
+      label: 'Label'
