@@ -1,5 +1,5 @@
 entity.reporting_endpoint.log:
-  path: '/reporting/{reporting_endpoint}'
+  path: '/system/reporting/{reporting_endpoint}'
   defaults:
     _title: 'Log Report'
     _controller: '\Drupal\reporting\Controller\ReportingEndpoint::log'
