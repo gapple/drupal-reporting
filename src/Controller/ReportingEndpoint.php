@@ -68,6 +68,13 @@ class ReportingEndpoint extends ControllerBase {
       return new Response('', 410);
     }
 
+    // Return 405: Method Not Allowed if not a POST request.
+    // This is used instead of the 'methods' property on the route so that an
+    // empty response body can be returned instead of a rendered error page.
+    if ($this->requestStack->getCurrentRequest()->getMethod() !== 'POST') {
+      return new Response('', 405);
+    }
+
     $reportJson = $this->requestStack->getCurrentRequest()->getContent();
     $report = json_decode($reportJson);
 
