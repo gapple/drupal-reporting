@@ -4,6 +4,8 @@ namespace Drupal\reporting\EventSubscriber;
 
 use Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException;
 use Drupal\Component\Plugin\Exception\PluginNotFoundException;
+use Drupal\Core\Cache\Cache;
+use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Routing\UrlGeneratorInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
@@ -30,19 +32,30 @@ class ResponseSubscriber implements EventSubscriberInterface {
   private $urlGenerator;
 
   /**
+   * A cache bin.
+   *
+   * @var \Drupal\Core\Cache\CacheBackendInterface
+   */
+  private $cache;
+
+  /**
    * ResponseSubscriber constructor.
    *
    * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entityTypeManager
    *   The Entity Type Manager service.
    * @param \Drupal\Core\Routing\UrlGeneratorInterface $urlGenerator
    *   The URL Generator service.
+   * @param \Drupal\Core\Cache\CacheBackendInterface $cache
+   *   A cache bin.
    */
   public function __construct(
     EntityTypeManagerInterface $entityTypeManager,
-    UrlGeneratorInterface $urlGenerator
+    UrlGeneratorInterface $urlGenerator,
+    CacheBackendInterface $cache
   ) {
     $this->entityTypeManager = $entityTypeManager;
     $this->urlGenerator = $urlGenerator;
+    $this->cache = $cache;
   }
 
   /**
@@ -67,45 +80,55 @@ class ResponseSubscriber implements EventSubscriberInterface {
       return;
     }
 
-    try {
-      $entityStorage = $this->entityTypeManager->getStorage('reporting_endpoint');
-    }
-    catch (InvalidPluginDefinitionException $e) {
-      return;
-    }
-    catch (PluginNotFoundException $e) {
-      return;
-    }
-
-    if (!($result = $entityStorage->getQuery()->execute())) {
-      return;
-    }
-
-    $endpoints = $entityStorage->loadMultiple($result);
-
+    $cid = 'reporting.header';
     $header = [];
 
-    foreach ($endpoints as $endpoint) {
-      $url = $this->urlGenerator->generateFromRoute(
-        'entity.reporting_endpoint.log',
-        ['reporting_endpoint' => $endpoint->id()],
-        // TODO Can local urls be relative?
-        ['absolute' => TRUE]
-      );
-      $header[] = [
-        'group' => $endpoint->id(),
-        // TODO make max_age a property of config entity?
-        'max_age' => 86400,
-        'endpoints' => [['url' => $url]],
-      ];
+    if (($cacheData = $this->cache->get($cid))) {
+      $header = $cacheData->data;
+    }
+    else {
+      try {
+        $entityStorage = $this->entityTypeManager->getStorage('reporting_endpoint');
+      }
+      catch (InvalidPluginDefinitionException $e) {
+        return;
+      }
+      catch (PluginNotFoundException $e) {
+        return;
+      }
+
+      if (!($result = $entityStorage->getQuery()->execute())) {
+        return;
+      }
+
+      $endpoints = $entityStorage->loadMultiple($result);
+
+      foreach ($endpoints as $endpoint) {
+        $url = $this->urlGenerator->generateFromRoute(
+          'entity.reporting_endpoint.log',
+          ['reporting_endpoint' => $endpoint->id()],
+          // TODO Can local urls be relative?
+          ['absolute' => TRUE]
+        );
+        $header[] = [
+          'group' => $endpoint->id(),
+          // TODO make max_age a property of config entity?
+          'max_age' => 86400,
+          'endpoints' => [['url' => $url]],
+        ];
+      }
+
+      $this->cache->set($cid, $header, Cache::PERMANENT, ['config:reporting_endpoint_list']);
     }
 
-    // The header’s value is interpreted as a JSON-formatted array of objects
-    // without the outer [ and ].
-    // @see https://w3c.github.io/reporting/#header
-    $headerJson = trim(json_encode($header), '[]');
+    if (!empty($header)) {
+      // The header’s value is interpreted as a JSON-formatted array of objects
+      // without the outer [ and ].
+      // @see https://w3c.github.io/reporting/#header
+      $headerString = trim(json_encode($header), '[]');
 
-    $event->getResponse()->headers->set('Report-To', $headerJson);
+      $event->getResponse()->headers->set('Report-To', $headerString);
+    }
   }
 
 }
