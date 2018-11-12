@@ -2,8 +2,7 @@
 
 namespace Drupal\reporting\EventSubscriber;
 
-use Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException;
-use Drupal\Component\Plugin\Exception\PluginNotFoundException;
+use Drupal\Component\Plugin\Exception\PluginException;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
@@ -90,10 +89,8 @@ class ResponseSubscriber implements EventSubscriberInterface {
       try {
         $entityStorage = $this->entityTypeManager->getStorage('reporting_endpoint');
       }
-      catch (InvalidPluginDefinitionException $e) {
-        return;
-      }
-      catch (PluginNotFoundException $e) {
+      catch (PluginException $e) {
+        watchdog_exception('reporting', $e);
         return;
       }
 
