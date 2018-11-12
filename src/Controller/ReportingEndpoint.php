@@ -6,6 +6,7 @@ use Drupal\Core\Controller\ControllerBase;
 use Drupal\reporting\Entity\ReportingEndpointInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -68,29 +69,86 @@ class ReportingEndpoint extends ControllerBase {
       return new Response('', 410);
     }
 
+    $request = $this->requestStack->getCurrentRequest();
+
     // Return 405: Method Not Allowed if not a POST request.
     // This is used instead of the 'methods' property on the route so that an
     // empty response body can be returned instead of a rendered error page.
-    if ($this->requestStack->getCurrentRequest()->getMethod() !== 'POST') {
+    if ($request->getMethod() !== 'POST') {
       return new Response('', 405);
     }
 
-    $reportJson = $this->requestStack->getCurrentRequest()->getContent();
-    $report = json_decode($reportJson);
+    $report = json_decode($request->getContent(), TRUE);
 
     // Return 400: Bad Request if content cannot be parsed.
     if (empty($report) || json_last_error() != JSON_ERROR_NONE) {
       return new Response('', 400);
     }
 
+    switch ($request->headers->get('Content-Type')) {
+      case 'application/reports+json':
+        $this->storeReportToData($reporting_endpoint, $report);
+        break;
+
+      case 'application/csp-report':
+        $this->storeReportUriData($reporting_endpoint, $report, $request);
+        break;
+
+      default:
+        // 415: Unsupported Media Type.
+        return new Response('', 415);
+    }
+
+    // 202: Accepted.
+    return new Response('', 202);
+  }
+
+  /**
+   * Helper to log CSP report sent via report-uri directive.
+   *
+   * @param \Drupal\reporting\Entity\ReportingEndpointInterface $reporting_endpoint
+   *   The reporting endpoint.
+   * @param array $report
+   *   The parsed report request body.
+   * @param \Symfony\Component\HttpFoundation\Request $request
+   *   The Request object.
+   */
+  private function storeReportUriData(ReportingEndpointInterface $reporting_endpoint, array $report, Request $request) {
+
+    // Convert data to format expected by Reporting API.
+    $report = [
+      'type' => 'csp',
+      'age' => 0,
+      'url' => $report['csp-report']['document-uri'],
+      'user_agent' => $request->headers->get('User-Agent'),
+      'body' => $report['csp-report'],
+    ];
+
     $this->logger
       ->info("@endpoint <br/>\n<pre>@data</pre>", [
         '@endpoint' => $reporting_endpoint->id(),
         '@data' => json_encode($report, JSON_PRETTY_PRINT),
       ]);
+  }
 
-    // 202: Accepted.
-    return new Response('', 202);
+  /**
+   * Helper to log reports sent to Report-To endpoint.
+   *
+   * @param \Drupal\reporting\Entity\ReportingEndpointInterface $reporting_endpoint
+   *   The reporting endpoint.
+   * @param array $report
+   *   The parsed report request body.
+   */
+  private function storeReportToData(ReportingEndpointInterface $reporting_endpoint, array $report) {
+
+    foreach ($report as $item) {
+      $this->logger
+        ->info("@endpoint <br/>\n<pre>@data</pre>", [
+          '@endpoint' => $reporting_endpoint->id(),
+          '@data' => json_encode($item, JSON_PRETTY_PRINT),
+        ]);
+    }
+
   }
 
 }
