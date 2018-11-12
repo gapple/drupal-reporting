@@ -62,6 +62,12 @@ class ReportingEndpoint extends ControllerBase {
    */
   public function log(ReportingEndpointInterface $reporting_endpoint) {
 
+    // Return 410: Gone if endpoint is disabled.
+    // @see https://w3c.github.io/reporting/#try-delivery
+    if (!$reporting_endpoint->status()) {
+      return new Response('', 410);
+    }
+
     $reportJson = $this->requestStack->getCurrentRequest()->getContent();
     $report = json_decode($reportJson);
 

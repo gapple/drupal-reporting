@@ -10,6 +10,8 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Form handler for Reporting Endpoint add and edit forms.
+ *
+ * @property \Drupal\Core\Config\Entity\ConfigEntityInterface entity
  */
 class ReportingEndpointForm extends EntityForm {
 
@@ -57,6 +59,11 @@ class ReportingEndpointForm extends EntityForm {
         'exists' => [$this, 'exists'],
       ],
       '#disabled' => !$this->entity->isNew(),
+    ];
+    $form['status'] = [
+      '#type' => 'checkbox',
+      '#title' => $this->t('Enabled'),
+      '#default_value' => $this->entity->status(),
     ];
 
     return $form;

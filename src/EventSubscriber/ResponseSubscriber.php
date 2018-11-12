@@ -94,25 +94,26 @@ class ResponseSubscriber implements EventSubscriberInterface {
         return;
       }
 
-      if (!($result = $entityStorage->getQuery()->execute())) {
-        return;
-      }
+      $query = $entityStorage->getQuery()
+        ->condition('status', TRUE);
 
-      $endpoints = $entityStorage->loadMultiple($result);
+      if (($result = $query->execute())) {
+        $endpoints = $entityStorage->loadMultiple($result);
 
-      foreach ($endpoints as $endpoint) {
-        $url = $this->urlGenerator->generateFromRoute(
-          'entity.reporting_endpoint.log',
-          ['reporting_endpoint' => $endpoint->id()],
-          // TODO Can local urls be relative?
-          ['absolute' => TRUE]
-        );
-        $header[] = [
-          'group' => $endpoint->id(),
-          // TODO make max_age a property of config entity?
-          'max_age' => 86400,
-          'endpoints' => [['url' => $url]],
-        ];
+        foreach ($endpoints as $endpoint) {
+          $url = $this->urlGenerator->generateFromRoute(
+            'entity.reporting_endpoint.log',
+            ['reporting_endpoint' => $endpoint->id()],
+            // TODO Can local urls be relative?
+            ['absolute' => TRUE]
+          );
+          $header[] = [
+            'group' => $endpoint->id(),
+            // TODO make max_age a property of config entity?
+            'max_age' => 86400,
+            'endpoints' => [['url' => $url]],
+          ];
+        }
       }
 
       $this->cache->set($cid, $header, Cache::PERMANENT, ['config:reporting_endpoint_list']);

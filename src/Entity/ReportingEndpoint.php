@@ -23,6 +23,7 @@ use Drupal\Core\Config\Entity\ConfigEntityBase;
  *   entity_keys = {
  *     "id" = "id",
  *     "label" = "label",
+ *     "status" = "status",
  *   },
  *   links = {
  *     "edit-form" = "/admin/config/system/reporting/{reporting_endpoint}",
