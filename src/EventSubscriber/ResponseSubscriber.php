@@ -6,7 +6,6 @@ use Drupal\Component\Plugin\Exception\PluginException;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
-use Drupal\Core\Routing\UrlGeneratorInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpKernel\Event\FilterResponseEvent;
 use Symfony\Component\HttpKernel\KernelEvents;
@@ -24,13 +23,6 @@ class ResponseSubscriber implements EventSubscriberInterface {
   private $entityTypeManager;
 
   /**
-   * The URL Generator service.
-   *
-   * @var \Drupal\Core\Routing\UrlGeneratorInterface
-   */
-  private $urlGenerator;
-
-  /**
    * A cache bin.
    *
    * @var \Drupal\Core\Cache\CacheBackendInterface
@@ -42,18 +34,14 @@ class ResponseSubscriber implements EventSubscriberInterface {
    *
    * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entityTypeManager
    *   The Entity Type Manager service.
-   * @param \Drupal\Core\Routing\UrlGeneratorInterface $urlGenerator
-   *   The URL Generator service.
    * @param \Drupal\Core\Cache\CacheBackendInterface $cache
    *   A cache bin.
    */
   public function __construct(
     EntityTypeManagerInterface $entityTypeManager,
-    UrlGeneratorInterface $urlGenerator,
     CacheBackendInterface $cache
   ) {
     $this->entityTypeManager = $entityTypeManager;
-    $this->urlGenerator = $urlGenerator;
     $this->cache = $cache;
   }
 
@@ -101,12 +89,8 @@ class ResponseSubscriber implements EventSubscriberInterface {
         $endpoints = $entityStorage->loadMultiple($result);
 
         foreach ($endpoints as $endpoint) {
-          $url = $this->urlGenerator->generateFromRoute(
-            'entity.reporting_endpoint.log',
-            ['reporting_endpoint' => $endpoint->id()],
-            // TODO Can local urls be relative?
-            ['absolute' => TRUE]
-          );
+          // TODO Can local urls be relative?
+          $url = $endpoint->toUrl('log', ['absolute' => TRUE])->toString();
           $header[] = [
             'group' => $endpoint->id(),
             // TODO make max_age a property of config entity?

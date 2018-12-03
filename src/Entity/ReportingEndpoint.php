@@ -29,6 +29,7 @@ use Drupal\Core\Config\Entity\ConfigEntityBase;
  *     "edit-form" = "/admin/config/system/reporting/{reporting_endpoint}",
  *     "delete-form" = "/admin/config/system/reporting/{reporting_endpoint}/delete",
  *     "collection" = "/admin/config/system/reporting",
+ *     "log" = "/system/reporting/{reporting_endpoint}",
  *   }
  * )
  */
