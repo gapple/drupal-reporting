@@ -3,7 +3,6 @@ services:
     class: Drupal\reporting\EventSubscriber\ResponseSubscriber
     arguments:
       - '@entity_type.manager'
-      - '@url_generator'
       - '@cache.default'
     tags:
       - { name: event_subscriber }
