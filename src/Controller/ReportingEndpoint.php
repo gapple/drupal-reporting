@@ -4,6 +4,7 @@ namespace Drupal\reporting\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\reporting\Entity\ReportingEndpointInterface;
+use Drupal\reporting\ReportingResponse;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\Request;
@@ -59,14 +60,14 @@ class ReportingEndpoint extends ControllerBase {
    *   The reporting endpoint.
    *
    * @return \Symfony\Component\HttpFoundation\Response
-   *   An empty response with the appropriate response code.
+   *   A Response object.
    */
   public function log(ReportingEndpointInterface $reporting_endpoint) {
 
     // Return 410: Gone if endpoint is disabled.
     // @see https://w3c.github.io/reporting/#try-delivery
     if (!$reporting_endpoint->status()) {
-      return new Response('', 410);
+      return new ReportingResponse(410);
     }
 
     $request = $this->requestStack->getCurrentRequest();
@@ -75,14 +76,14 @@ class ReportingEndpoint extends ControllerBase {
     // This is used instead of the 'methods' property on the route so that an
     // empty response body can be returned instead of a rendered error page.
     if ($request->getMethod() !== 'POST') {
-      return new Response('', 405);
+      return new ReportingResponse(405);
     }
 
     $report = json_decode($request->getContent(), TRUE);
 
     // Return 400: Bad Request if content cannot be parsed.
     if (empty($report) || json_last_error() != JSON_ERROR_NONE) {
-      return new Response('', 400);
+      return new ReportingResponse(400);
     }
 
     switch ($request->headers->get('Content-Type')) {
@@ -96,11 +97,11 @@ class ReportingEndpoint extends ControllerBase {
 
       default:
         // 415: Unsupported Media Type.
-        return new Response('', 415);
+        return new ReportingResponse(415);
     }
 
     // 202: Accepted.
-    return new Response('', 202);
+    return new ReportingResponse(202);
   }
 
   /**
