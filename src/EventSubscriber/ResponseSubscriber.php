@@ -5,6 +5,7 @@ namespace Drupal\reporting\EventSubscriber;
 use Drupal\Component\Plugin\Exception\PluginException;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Cache\CacheBackendInterface;
+use Drupal\Core\Entity\EntityMalformedException;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpKernel\Event\FilterResponseEvent;
@@ -89,8 +90,14 @@ class ResponseSubscriber implements EventSubscriberInterface {
         $endpoints = $entityStorage->loadMultiple($result);
 
         foreach ($endpoints as $endpoint) {
-          // TODO Can local urls be relative?
-          $url = $endpoint->toUrl('log', ['absolute' => TRUE])->toString();
+          try {
+            // TODO Can local urls be relative?
+            $url = $endpoint->toUrl('log', ['absolute' => TRUE])->toString();
+          }
+          catch (EntityMalformedException $e) {
+            watchdog_exception('reporting', $e);
+            continue;
+          }
           $header[] = [
             'group' => $endpoint->id(),
             // TODO make max_age a property of config entity?
