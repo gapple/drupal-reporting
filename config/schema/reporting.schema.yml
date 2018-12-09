@@ -8,3 +8,11 @@ reporting.reporting_endpoint.*:
     label:
       type: label
       label: 'Label'
+
+csp_reporting_handler.reporting:
+  type: mapping
+  label: 'Reporting Endpoint'
+  mapping:
+    endpoint:
+      type: string
+      label: 'Endpoint ID'
