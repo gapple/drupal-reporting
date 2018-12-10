@@ -7,6 +7,7 @@ use Drupal\Core\Cache\Cache;
 use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Entity\EntityMalformedException;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\reporting\ReportingResponse;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpKernel\Event\FilterResponseEvent;
 use Symfony\Component\HttpKernel\KernelEvents;
@@ -52,9 +53,26 @@ class ResponseSubscriber implements EventSubscriberInterface {
   public static function getSubscribedEvents() {
     return [
       KernelEvents::RESPONSE => [
-        'addReportToHeader',
+        ['reportingResponses', 9000],
+        ['addReportToHeader', 0],
       ],
     ];
+  }
+
+  /**
+   * Prevent other response event listeners from altering reporting responses.
+   *
+   * @param \Symfony\Component\HttpKernel\Event\FilterResponseEvent $event
+   *   The response event.
+   */
+  public function reportingResponses(FilterResponseEvent $event) {
+    if (!$event->isMasterRequest()) {
+      return;
+    }
+
+    if ($event->getResponse() instanceof ReportingResponse) {
+      $event->stopPropagation();
+    }
   }
 
   /**
